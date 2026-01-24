@@ -1,3 +1,5 @@
+import PageWrapper from '../animations/PageWrapper';
+
 const policies = [
   {
     title: 'Quiet hours',
@@ -23,21 +25,23 @@ const policies = [
 
 function Policies() {
   return (
-    <section className="section">
-      <div className="section__header">
-        <h1>House policies</h1>
-        <p>Designed to balance calm living, safety, and freedom for every resident.</p>
-      </div>
+    <PageWrapper>
+      <section className="section">
+        <div className="section__header">
+          <h1>House policies</h1>
+          <p>Designed to balance calm living, safety, and freedom for every resident.</p>
+        </div>
 
-      <div className="grid grid--two">
-        {policies.map((policy) => (
-          <article key={policy.title} className="card">
-            <h3>{policy.title}</h3>
-            <p>{policy.detail}</p>
-          </article>
-        ))}
-      </div>
-    </section>
+        <div className="grid grid--two">
+          {policies.map((policy) => (
+            <article key={policy.title} className="card">
+              <h3>{policy.title}</h3>
+              <p>{policy.detail}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+    </PageWrapper>
   );
 }
 

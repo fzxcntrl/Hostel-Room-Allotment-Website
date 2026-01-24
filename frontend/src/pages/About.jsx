@@ -1,5 +1,6 @@
 import StatsStrip from '../components/StatsStrip';
 import StoryTimeline from '../components/StoryTimeline';
+import PageWrapper from '../animations/PageWrapper';
 
 const values = [
   {
@@ -18,29 +19,31 @@ const values = [
 
 function About() {
   return (
-    <section className="section about">
-      <div className="section__header">
-        <h1>About HostelBloom</h1>
-        <p>We craft thoughtful hostel tech that feels like a boutique stay while staying incredibly practical.</p>
-      </div>
+    <PageWrapper>
+      <section className="section about">
+        <div className="section__header">
+          <h1>About HostelBloom</h1>
+          <p>We craft thoughtful hostel tech that feels like a boutique stay while staying incredibly practical.</p>
+        </div>
 
-      <StatsStrip />
+        <StatsStrip />
 
-      <div className="grid grid--two">
-        {values.map((value) => (
-          <article key={value.title} className="card">
-            <h3>{value.title}</h3>
-            <p>{value.detail}</p>
-          </article>
-        ))}
-      </div>
+        <div className="grid grid--two">
+          {values.map((value) => (
+            <article key={value.title} className="card">
+              <h3>{value.title}</h3>
+              <p>{value.detail}</p>
+            </article>
+          ))}
+        </div>
 
-      <div className="section__header">
-        <h2>Our timeline</h2>
-        <p>Seven years of shaping calmer campus living, one shipping sprint at a time.</p>
-      </div>
-      <StoryTimeline />
-    </section>
+        <div className="section__header">
+          <h2>Our timeline</h2>
+          <p>Seven years of shaping calmer campus living, one shipping sprint at a time.</p>
+        </div>
+        <StoryTimeline />
+      </section>
+    </PageWrapper>
   );
 }
 

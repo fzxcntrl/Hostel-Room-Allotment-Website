@@ -1,3 +1,5 @@
+import PageWrapper from '../animations/PageWrapper';
+
 const galleryItems = [
   {
     title: 'Sunrise suites',
@@ -23,24 +25,26 @@ const galleryItems = [
 
 function Gallery() {
   return (
-    <section className="section">
-      <div className="section__header">
-        <h1>Gallery</h1>
-        <p>Peek into the textures, lighting palettes and rituals shaping HostelBloom stays.</p>
-      </div>
+    <PageWrapper>
+      <section className="section">
+        <div className="section__header">
+          <h1>Gallery</h1>
+          <p>Peek into the textures, lighting palettes and rituals shaping HostelBloom stays.</p>
+        </div>
 
-      <div className="grid gallery">
-        {galleryItems.map((item) => (
-          <figure key={item.title} className="gallery__item">
-            <div className="gallery__image" style={{ backgroundImage: `url(${item.photo})` }} />
-            <figcaption>
-              <h3>{item.title}</h3>
-              <p>{item.description}</p>
-            </figcaption>
-          </figure>
-        ))}
-      </div>
-    </section>
+        <div className="grid gallery">
+          {galleryItems.map((item) => (
+            <figure key={item.title} className="gallery__item">
+              <div className="gallery__image" style={{ backgroundImage: `url(${item.photo})` }} />
+              <figcaption>
+                <h3>{item.title}</h3>
+                <p>{item.description}</p>
+              </figcaption>
+            </figure>
+          ))}
+        </div>
+      </section>
+    </PageWrapper>
   );
 }
 

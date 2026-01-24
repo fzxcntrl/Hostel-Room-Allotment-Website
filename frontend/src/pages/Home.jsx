@@ -1,5 +1,8 @@
+import { useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import StatsStrip from '../components/StatsStrip';
+import PageWrapper from '../animations/PageWrapper';
+import { animateHero, animateButtonHover, animateButtonLeave } from '../animations/microInteractions';
 
 const highlights = [
   { title: 'Soft aesthetics', text: 'Warm palettes, rounded corners and calm typography welcome your guests.' },
@@ -19,20 +22,37 @@ const testimonials = [
 ];
 
 function Home() {
+  const contentRef = useRef(null);
+  const ctaRef = useRef(null);
+
+  useEffect(() => {
+    animateHero(contentRef, ctaRef);
+  }, []);
+
   return (
-    <>
+    <PageWrapper>
       <section className="hero">
-        <div className="hero__content">
+        <div className="hero__content" ref={contentRef} style={{ opacity: 0 }}>
           <p className="eyebrow">Boutique hostel management</p>
           <h1>Curate thoughtful stays for every student.</h1>
           <p className="lead">
             HostelBloom pairs a tasteful React experience with a pragmatic Node.js API so admins and residents stay in sync.
           </p>
-          <div className="hero__cta">
-            <Link to="/rooms" className="btn btn--primary">
+          <div className="hero__cta" ref={ctaRef}>
+            <Link 
+              to="/rooms" 
+              className="btn btn--primary"
+              onMouseEnter={(e) => animateButtonHover(e.currentTarget)}
+              onMouseLeave={(e) => animateButtonLeave(e.currentTarget)}
+            >
               Explore rooms
             </Link>
-            <Link to="/book" className="btn btn--ghost">
+            <Link 
+              to="/book" 
+              className="btn btn--ghost"
+              onMouseEnter={(e) => animateButtonHover(e.currentTarget)}
+              onMouseLeave={(e) => animateButtonLeave(e.currentTarget)}
+            >
               Book a stay
             </Link>
           </div>
@@ -63,7 +83,7 @@ function Home() {
           ))}
         </div>
       </section>
-    </>
+    </PageWrapper>
   );
 }
 

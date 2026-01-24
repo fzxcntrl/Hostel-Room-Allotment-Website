@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import RoomCard from '../components/RoomCard';
 import api from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import PageWrapper from '../animations/PageWrapper';
 
 function BookRoom() {
   const { isAuthenticated, user } = useAuth();
@@ -14,15 +16,15 @@ function BookRoom() {
     guests: 1,
     notes: '',
   });
-  const [status, setStatus] = useState({ loadingRooms: true, submitting: false, error: null, success: null });
+  const [status, setStatus] = useState({ loadingRooms: true, submitting: false, error: null });
 
   useEffect(() => {
     let ignore = false;
     async function fetchAvailableRooms() {
       try {
         const { data } = await api.get('/rooms/available');
-        if (!ignore) {
-          setRooms(data);
+        if (!ignore && data.success) {
+          setRooms(data.data);
           setStatus((prev) => ({ ...prev, loadingRooms: false, error: null }));
         }
       } catch (error) {
@@ -31,7 +33,6 @@ function BookRoom() {
             ...prev,
             loadingRooms: false,
             error: error?.response?.data?.message || 'Unable to load rooms right now.',
-            success: null,
           }));
         }
       }
@@ -51,96 +52,102 @@ function BookRoom() {
   const handleSubmit = async (event) => {
     event.preventDefault();
     if (!selectedRoom) {
-      setStatus((prev) => ({ ...prev, error: 'Please select a room first.' }));
+      toast.error('Please select a room first.');
       return;
     }
 
-    setStatus((prev) => ({ ...prev, submitting: true, error: null, success: null }));
+    setStatus((prev) => ({ ...prev, submitting: true, error: null }));
 
     try {
       const payload = {
         ...formData,
         guests: Number(formData.guests),
-        roomId: selectedRoom.id,
-        userId: user.id,
+        roomId: selectedRoom._id || selectedRoom.id,
+        userId: user.id || user._id,
       };
       const { data } = await api.post('/bookings', payload);
-      setStatus((prev) => ({ ...prev, submitting: false, error: null, success: data.message }));
-      setRooms((prev) => prev.filter((room) => room.id !== selectedRoom.id));
+      setStatus((prev) => ({ ...prev, submitting: false, error: null }));
+      toast.success(data.message || 'Room booked successfully!');
+      
+      setRooms((prev) => prev.filter((room) => (room._id || room.id) !== (selectedRoom._id || selectedRoom.id)));
       setFormData({ checkIn: '', checkOut: '', guests: 1, notes: '' });
       setSelectedRoom(null);
     } catch (error) {
+      const errMsg = error?.response?.data?.message || 'Booking failed. Please try again.';
       setStatus((prev) => ({
         ...prev,
         submitting: false,
-        success: null,
-        error: error?.response?.data?.message || 'Booking failed. Please try again.',
+        error: errMsg,
       }));
+      toast.error(errMsg);
     }
   };
 
   if (!isAuthenticated) {
     return (
-      <section className="section">
-        <div className="section__header">
-          <h2>Book a stay</h2>
-          <p>Please log in so we can attach the reservation to your profile.</p>
-        </div>
-        <p>
-          <Link to="/login" className="btn btn--primary">
-            Go to login
-          </Link>
-        </p>
-      </section>
+      <PageWrapper>
+        <section className="section">
+          <div className="section__header">
+            <h2>Book a stay</h2>
+            <p>Please log in so we can attach the reservation to your profile.</p>
+          </div>
+          <p>
+            <Link to="/login" className="btn btn--primary">
+              Go to login
+            </Link>
+          </p>
+        </section>
+      </PageWrapper>
     );
   }
 
   return (
-    <section className="section">
-      <div className="section__header">
-        <h2>Reserve your sanctuary</h2>
-        <p>Select a room, choose your dates and we will handle the rest.</p>
-      </div>
-
-      {status.error && <p className="error">{status.error}</p>}
-      {status.success && <p className="success">{status.success}</p>}
-
-      {status.loadingRooms && <p className="muted">Loading rooms...</p>}
-
-      <div className="grid">
-        {rooms.map((room) => (
-          <RoomCard
-            key={room.id}
-            room={room}
-            onSelect={setSelectedRoom}
-            isSelected={selectedRoom?.id === room.id}
-          />
-        ))}
-      </div>
-      {!status.loadingRooms && rooms.length === 0 && <p className="muted">All rooms are currently booked.</p>}
-
-      <form className="card form" onSubmit={handleSubmit}>
-        <div className="form__group">
-          <label htmlFor="checkIn">Check-in</label>
-          <input type="date" id="checkIn" name="checkIn" value={formData.checkIn} onChange={handleChange} required />
+    <PageWrapper>
+      <section className="section">
+        <div className="section__header">
+          <h2>Reserve your sanctuary</h2>
+          <p>Select a room, choose your dates and we will handle the rest.</p>
         </div>
-        <div className="form__group">
-          <label htmlFor="checkOut">Check-out</label>
-          <input type="date" id="checkOut" name="checkOut" value={formData.checkOut} onChange={handleChange} required />
+
+        {status.error && <p className="error">{status.error}</p>}
+
+        {status.loadingRooms && <p className="muted">Loading rooms...</p>}
+
+        <div className="grid">
+          {rooms.map((room) => (
+            <RoomCard
+              key={room._id || room.id}
+              room={room}
+              onSelect={setSelectedRoom}
+              isSelected={(selectedRoom?._id || selectedRoom?.id) === (room._id || room.id)}
+            />
+          ))}
         </div>
-        <div className="form__group">
-          <label htmlFor="guests">Guests</label>
-          <input type="number" id="guests" min="1" max="3" name="guests" value={formData.guests} onChange={handleChange} />
-        </div>
-        <div className="form__group">
-          <label htmlFor="notes">Preferences</label>
-          <textarea id="notes" name="notes" rows="3" value={formData.notes} onChange={handleChange} placeholder="Soft bedding, window seat, dietary notes..." />
-        </div>
-        <button className="btn btn--primary" type="submit" disabled={status.submitting}>
-          {status.submitting ? 'Processing...' : 'Confirm booking'}
-        </button>
-      </form>
-    </section>
+        {!status.loadingRooms && rooms.length === 0 && <p className="muted">All rooms are currently booked.</p>}
+
+        <form className="card form" onSubmit={handleSubmit}>
+          <div className="form__group">
+            <label htmlFor="checkIn">Check-in</label>
+            <input type="date" id="checkIn" name="checkIn" value={formData.checkIn} onChange={handleChange} required disabled={status.submitting} />
+          </div>
+          <div className="form__group">
+            <label htmlFor="checkOut">Check-out</label>
+            <input type="date" id="checkOut" name="checkOut" value={formData.checkOut} onChange={handleChange} required disabled={status.submitting} />
+          </div>
+          <div className="form__group">
+            <label htmlFor="guests">Guests</label>
+            <input type="number" id="guests" min="1" max="3" name="guests" value={formData.guests} onChange={handleChange} disabled={status.submitting} />
+          </div>
+          <div className="form__group">
+            <label htmlFor="notes">Preferences</label>
+            <textarea id="notes" name="notes" rows="3" value={formData.notes} onChange={handleChange} placeholder="Soft bedding, window seat, dietary notes..." disabled={status.submitting} />
+          </div>
+          <button className="btn btn--primary" type="submit" disabled={status.submitting}>
+            {status.submitting ? 'Processing...' : 'Confirm booking'}
+          </button>
+        </form>
+      </section>
+    </PageWrapper>
   );
 }
 

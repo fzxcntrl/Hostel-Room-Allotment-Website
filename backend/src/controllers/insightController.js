@@ -1,28 +1,28 @@
-const prisma = require('../prismaClient');
+const { getDb } = require('../config/db');
 
 async function getOverview(req, res, next) {
   try {
-    const [rooms, availableRooms, bookings, confirmedBookings, cancelledBookings, users] = await Promise.all([
-      prisma.room.count(),
-      prisma.room.count({ where: { status: 'Available' } }),
-      prisma.booking.count(),
-      prisma.booking.count({ where: { status: 'Confirmed' } }),
-      prisma.booking.count({ where: { status: 'Cancelled' } }),
-      prisma.user.count(),
+    const db = getDb();
+    const [rooms, availableRooms, bookings, users] = await Promise.all([
+      db.collection('rooms').countDocuments(),
+      db.collection('rooms').countDocuments({ isAvailable: true }),
+      db.collection('bookings').countDocuments(),
+      db.collection('users').countDocuments(),
     ]);
 
     const occupancyRate = rooms === 0 ? 0 : Math.round(((rooms - availableRooms) / rooms) * 100);
 
     res.json({
-      totals: {
-        rooms,
-        availableRooms,
-        bookings,
-        confirmedBookings,
-        cancelledBookings,
-        users,
-      },
-      occupancyRate,
+      success: true,
+      data: {
+        totals: {
+          rooms,
+          availableRooms,
+          bookings,
+          users,
+        },
+        occupancyRate,
+      }
     });
   } catch (error) {
     next(error);
@@ -34,16 +34,13 @@ async function getRecentBookings(req, res, next) {
     const lastWeek = new Date();
     lastWeek.setDate(lastWeek.getDate() - 7);
 
-    const data = await prisma.booking.findMany({
-      where: { createdAt: { gte: lastWeek } },
-      include: {
-        room: { select: { name: true, type: true } },
-        user: { select: { fullName: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-    });
+    const db = getDb();
+    const data = await db.collection('bookings').aggregate([
+      { $match: { createdAt: { $gte: lastWeek } } },
+      { $sort: { createdAt: -1 } }
+    ]).toArray();
 
-    res.json(data);
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }
