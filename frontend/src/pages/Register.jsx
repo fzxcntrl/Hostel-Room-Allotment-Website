@@ -52,9 +52,10 @@ function Register() {
               {loading ? 'Creating account...' : 'Register'}
             </button>
           </form>
-          <p className="muted">
-            Already have an account? <Link to="/login">Login</Link>
-          </p>
+          <div style={{ marginTop: '24px', textAlign: 'center' }}>
+            <p className="muted" style={{ marginBottom: '8px' }}>Already have an account?</p>
+            <Link to="/login" className="btn btn--outline" style={{ display: 'inline-block', width: '100%' }}>Login</Link>
+          </div>
         </div>
       </section>
     </PageWrapper>

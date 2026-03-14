@@ -45,9 +45,10 @@ function Login() {
               {loading ? 'Signing you in...' : 'Login'}
             </button>
           </form>
-          <p className="muted">
-            New to HostelBloom? <Link to="/register">Create an account</Link>
-          </p>
+          <div style={{ marginTop: '24px', textAlign: 'center' }}>
+            <p className="muted" style={{ marginBottom: '8px' }}>New to HostelBloom?</p>
+            <Link to="/register" className="btn btn--outline" style={{ display: 'inline-block', width: '100%' }}>Create an account</Link>
+          </div>
         </div>
       </section>
     </PageWrapper>

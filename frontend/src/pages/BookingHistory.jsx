@@ -74,32 +74,71 @@ function BookingHistory() {
         {status.error && <p className="error">{status.error}</p>}
 
         <div className="grid">
-          {bookings.map((booking) => (
-            <article key={booking._id || booking.id} className="card">
-              <header className="booking-card__header">
-                <div>
-                  <h3>{booking.roomId?.name || `Room ${booking.roomId?.roomNumber}`}</h3>
-                  <p className="muted">{booking.roomId?.type}</p>
+          {(() => {
+            const now = new Date();
+            now.setHours(0,0,0,0);
+            const currentBookings = bookings.filter(b => b.status === "Confirmed" && new Date(b.date) >= now);
+            const pastBookings = bookings.filter(b => b.status === "Cancelled" || new Date(b.date) < now);
+
+            return (
+              <>
+                <div style={{ gridColumn: '1 / -1' }}>
+                   <h3>Current Bookings</h3>
+                   {currentBookings.length === 0 && <p className="muted">No upcoming stays.</p>}
                 </div>
-                <span className={`badge badge--${(booking.status || 'Confirmed').toLowerCase()}`}>{(booking.status || 'Confirmed')}</span>
-              </header>
-              <dl className="booking-card__details">
-                <div>
-                  <dt>Check-in</dt>
-                  <dd>{new Date(booking.date).toLocaleDateString()}</dd>
+                {currentBookings.map((booking) => (
+                  <article key={booking._id || booking.id} className="card">
+                    <header className="booking-card__header">
+                      <div>
+                        <h3>{booking.roomId?.name || `Room ${booking.roomId?.roomNumber}`}</h3>
+                        <p className="muted">{booking.roomId?.type}</p>
+                      </div>
+                      <span className={`badge badge--${(booking.status || 'Confirmed').toLowerCase()}`}>{(booking.status || 'Confirmed')}</span>
+                    </header>
+                    <dl className="booking-card__details">
+                      <div>
+                        <dt>Check-in</dt>
+                        <dd>{new Date(booking.date).toLocaleDateString()}</dd>
+                      </div>
+                      <div>
+                        <dt>Price</dt>
+                        <dd>${booking.roomId?.price}</dd>
+                      </div>
+                    </dl>
+                    <button className="btn btn--outline" onClick={() => handleCancel(booking._id || booking.id)}>
+                      Cancel booking
+                    </button>
+                  </article>
+                ))}
+
+                <div style={{ gridColumn: '1 / -1', marginTop: '2rem' }}>
+                   <h3>Booking History</h3>
+                   {pastBookings.length === 0 && <p className="muted">No past stays.</p>}
                 </div>
-                <div>
-                  <dt>Price</dt>
-                  <dd>${booking.roomId?.price}</dd>
-                </div>
-              </dl>
-              {booking.status !== 'Cancelled' && (
-                <button className="btn btn--outline" onClick={() => handleCancel(booking._id || booking.id)}>
-                  Cancel booking
-                </button>
-              )}
-            </article>
-          ))}
+                {pastBookings.map((booking) => (
+                  <article key={booking._id || booking.id} className="card" style={{ opacity: 0.7 }}>
+                    <header className="booking-card__header">
+                      <div>
+                        <h3>{booking.roomId?.name || `Room ${booking.roomId?.roomNumber}`}</h3>
+                        <p className="muted">{booking.roomId?.type}</p>
+                      </div>
+                      <span className={`badge badge--${(booking.status || 'Confirmed').toLowerCase()}`}>{(booking.status || 'Confirmed')}</span>
+                    </header>
+                    <dl className="booking-card__details">
+                      <div>
+                        <dt>Check-in</dt>
+                        <dd>{new Date(booking.date).toLocaleDateString()}</dd>
+                      </div>
+                      <div>
+                        <dt>Price</dt>
+                        <dd>${booking.roomId?.price}</dd>
+                      </div>
+                    </dl>
+                  </article>
+                ))}
+              </>
+            );
+          })()}
         </div>
 
         {!status.loading && bookings.length === 0 && <p className="muted">No bookings yet. Reserve your first stay!</p>}

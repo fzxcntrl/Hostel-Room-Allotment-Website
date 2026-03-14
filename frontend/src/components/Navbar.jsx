@@ -30,9 +30,6 @@ function Navbar() {
         <NavLink to="/book" onClick={closeMenu}>
           Book
         </NavLink>
-        <NavLink to="/facilities" onClick={closeMenu}>
-          Facilities
-        </NavLink>
         <NavLink to="/about" onClick={closeMenu}>
           About
         </NavLink>
@@ -41,9 +38,6 @@ function Navbar() {
         </NavLink>
         <NavLink to="/policies" onClick={closeMenu}>
           Policies
-        </NavLink>
-        <NavLink to="/faq" onClick={closeMenu}>
-          FAQ
         </NavLink>
         <NavLink to="/contact" onClick={closeMenu}>
           Contact
