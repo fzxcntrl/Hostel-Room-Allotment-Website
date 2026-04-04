@@ -35,7 +35,7 @@ function RoomCard({ room, onSelect, isSelected }) {
           <li>{(room.rating || 4.5).toFixed?.(1) || room.rating}/5</li>
         </ul>
         <div className="room-card__footer">
-          <p className="price">${room.price || room.pricePerNight}/night</p>
+          <p className="price">₹{room.price * 85}/night</p>
           {onSelect && (
             <button className="btn btn--outline" onClick={() => onSelect(room)}>
               {isSelected ? 'Selected' : 'Select'}
