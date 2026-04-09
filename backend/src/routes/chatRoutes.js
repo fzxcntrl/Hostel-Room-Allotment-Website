@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// genAI will be instantiated inside the route to prevent top-level crashes if API key is missing
 
 router.post('/', async (req, res, next) => {
   try {
@@ -16,6 +16,7 @@ router.post('/', async (req, res, next) => {
        return res.status(500).json({ reply: 'Chatbot is currently down (missing API Key).' });
     }
 
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ 
         model: "gemini-2.0-flash",
         systemInstruction: "You are a helpful assistant for HostelBloom, a modern boutique hostel management system. Keep your answers concise, friendly, and helpful. You help with room availability, pricing, and booking help."
