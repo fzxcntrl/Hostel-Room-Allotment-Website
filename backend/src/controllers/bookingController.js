@@ -1,58 +1,53 @@
 const { validationResult } = require('express-validator');
-const prisma = require('../prismaClient');
+const { ObjectId } = require('mongodb');
+const { getDb } = require('../config/db');
 
 async function createBooking(req, res, next) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
 
     const { roomId, userId, checkIn, checkOut, guests, notes } = req.body;
+    const db = getDb();
 
-    const [room, user] = await Promise.all([
-      prisma.room.findUnique({ where: { id: roomId } }),
-      prisma.user.findUnique({ where: { id: userId } }),
-    ]);
+    if (!ObjectId.isValid(roomId) || !ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid room or user ID.' });
+    }
+
+    const room = await db.collection('rooms').findOne({ _id: new ObjectId(roomId) });
 
     if (!room) {
-      return res.status(404).json({ message: 'Room not found.' });
+      return res.status(404).json({ success: false, message: 'Room not found.' });
     }
 
-    if (room.status !== 'Available') {
-      return res.status(400).json({ message: 'Room is not available right now.' });
-    }
-
-    if (!user) {
-      return res.status(404).json({ message: 'User not found.' });
+    if (!room.isAvailable) {
+      return res.status(400).json({ success: false, message: 'Room is not available right now.' });
     }
 
     if (new Date(checkOut) <= new Date(checkIn)) {
-      return res.status(400).json({ message: 'Check-out must be after check-in.' });
+      return res.status(400).json({ success: false, message: 'Check-out must be after check-in.' });
     }
 
-    if (guests > room.capacity) {
-      return res.status(400).json({ message: 'Guest count exceeds room capacity.' });
-    }
+    const booking = {
+      roomId: new ObjectId(roomId),
+      userId: new ObjectId(userId),
+      date: new Date(checkIn),
+      status: 'Confirmed',
+      createdAt: new Date(),
+    };
+    
+    const result = await db.collection('bookings').insertOne(booking);
+    booking._id = result.insertedId;
 
-    const booking = await prisma.booking.create({
-      data: {
-        roomId,
-        userId,
-        checkIn: new Date(checkIn),
-        checkOut: new Date(checkOut),
-        guests,
-        notes,
-        status: 'Confirmed',
-      },
-    });
-
-    await prisma.room.update({
-      where: { id: roomId },
-      data: { status: 'Booked' },
-    });
+    await db.collection('rooms').updateOne(
+      { _id: new ObjectId(roomId) },
+      { $set: { isAvailable: false } }
+    );
 
     res.status(201).json({
+      success: true,
       message: 'Room booked successfully!',
       booking,
     });
@@ -63,14 +58,28 @@ async function createBooking(req, res, next) {
 
 async function getBookings(req, res, next) {
   try {
-    const data = await prisma.booking.findMany({
-      include: {
-        room: { select: { name: true, type: true } },
-        user: { select: { fullName: true, email: true } },
+    const db = getDb();
+    const data = await db.collection('bookings').aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+          from: 'rooms',
+          localField: 'roomId',
+          foreignField: '_id',
+          as: 'roomInfo'
+        }
       },
-      orderBy: { createdAt: 'desc' },
-    });
-    res.json(data);
+      {
+         $lookup: {
+          from: 'users',
+          localField: 'userId',
+          foreignField: '_id',
+          as: 'userInfo'
+        }
+      }
+    ]).toArray();
+    
+    res.json({ success: true, data });
   } catch (error) {
     next(error);
   }
@@ -78,17 +87,33 @@ async function getBookings(req, res, next) {
 
 async function getUserBookings(req, res, next) {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
     const { userId } = req.params;
-    const bookings = await prisma.booking.findMany({
-      where: { userId: Number(userId) },
-      include: { room: { select: { name: true, type: true, photoUrl: true } } },
-      orderBy: { createdAt: 'desc' },
-    });
-    res.json(bookings);
+    if (!ObjectId.isValid(userId)) {
+      return res.status(400).json({ success: false, message: 'Invalid user ID' });
+    }
+    
+    const db = getDb();
+    
+    const bookings = await db.collection('bookings').aggregate([
+      { $match: { userId: new ObjectId(userId) } },
+      { $sort: { createdAt: -1 } },
+      {
+        $lookup: {
+           from: 'rooms',
+           localField: 'roomId',
+           foreignField: '_id',
+           as: 'roomInfo'
+        }
+      }
+    ]).toArray();
+
+    // Map it to match what the frontend expects 
+    const mapped = bookings.map(b => ({
+      ...b,
+      roomId: b.roomInfo && b.roomInfo.length > 0 ? b.roomInfo[0] : null
+    }));
+
+    res.json({ success: true, data: mapped });
   } catch (error) {
     next(error);
   }
@@ -98,35 +123,25 @@ async function cancelBooking(req, res, next) {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ success: false, errors: errors.array() });
     }
     const { bookingId } = req.params;
-    const booking = await prisma.booking.findUnique({
-      where: { id: Number(bookingId) },
-      include: { room: true },
-    });
+    
+    if (!ObjectId.isValid(bookingId)) {
+        return res.status(400).json({ success: false, message: 'Invalid booking ID' })
+    }
+    
+    const db = getDb();
+    const booking = await db.collection('bookings').findOne({ _id: new ObjectId(bookingId) });
 
     if (!booking) {
-      return res.status(404).json({ message: 'Booking not found.' });
+      return res.status(404).json({ success: false, message: 'Booking not found.' });
     }
 
-    if (booking.status === 'Cancelled') {
-      return res.status(400).json({ message: 'Booking already cancelled.' });
-    }
+    await db.collection('bookings').deleteOne({ _id: new ObjectId(bookingId) });
+    await db.collection('rooms').updateOne({ _id: booking.roomId }, { $set: { isAvailable: true } });
 
-    await prisma.booking.update({
-      where: { id: booking.id },
-      data: { status: 'Cancelled' },
-    });
-
-    if (booking.room) {
-      await prisma.room.update({
-        where: { id: booking.roomId },
-        data: { status: 'Available' },
-      });
-    }
-
-    res.json({ message: 'Booking cancelled successfully.' });
+    res.json({ success: true, message: 'Booking cancelled successfully.' });
   } catch (error) {
     next(error);
   }

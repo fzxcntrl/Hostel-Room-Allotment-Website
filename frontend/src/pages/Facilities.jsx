@@ -1,3 +1,5 @@
+import PageWrapper from '../animations/PageWrapper';
+
 const facilityList = [
   {
     title: 'Wellness corners',
@@ -23,28 +25,30 @@ const facilityList = [
 
 function Facilities() {
   return (
-    <section className="section">
-      <div className="section__header">
-        <h1>Facilities & rituals</h1>
-        <p>More than beds — HostelBloom pairs mindful spaces with tech so residents feel grounded.</p>
-      </div>
+    <PageWrapper>
+      <section className="section">
+        <div className="section__header">
+          <h1>Facilities & rituals</h1>
+          <p>More than beds — HostelBloom pairs mindful spaces with tech so residents feel grounded.</p>
+        </div>
 
-      <div className="grid grid--two">
-        {facilityList.map((facility) => (
-          <article key={facility.title} className="card facility">
-            <header>
-              <h3>{facility.title}</h3>
-              <p>{facility.description}</p>
-            </header>
-            <ul>
-              {facility.tags.map((tag) => (
-                <li key={tag}>{tag}</li>
-              ))}
-            </ul>
-          </article>
-        ))}
-      </div>
-    </section>
+        <div className="grid grid--two">
+          {facilityList.map((facility) => (
+            <article key={facility.title} className="card facility">
+              <header>
+                <h3>{facility.title}</h3>
+                <p>{facility.description}</p>
+              </header>
+              <ul>
+                {facility.tags.map((tag) => (
+                  <li key={tag}>{tag}</li>
+                ))}
+              </ul>
+            </article>
+          ))}
+        </div>
+      </section>
+    </PageWrapper>
   );
 }
 

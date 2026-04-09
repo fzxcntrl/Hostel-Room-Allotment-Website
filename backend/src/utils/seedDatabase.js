@@ -1,14 +1,17 @@
 const bcrypt = require('bcryptjs');
-const prisma = require('../prismaClient');
+const { getDb } = require('../config/db');
 const { roomSeed, userSeed } = require('./sampleData');
 
 async function seedDatabase() {
-  const roomCount = await prisma.room.count();
+  const db = getDb();
+  
+  const roomCount = await db.collection('rooms').countDocuments();
   if (roomCount === 0) {
-    await prisma.room.createMany({ data: roomSeed });
+    await db.collection('rooms').insertMany(roomSeed);
+    console.log('Seed: Rooms inserted');
   }
 
-  const userCount = await prisma.user.count();
+  const userCount = await db.collection('users').countDocuments();
   if (userCount === 0) {
     const payload = await Promise.all(
       userSeed.map(async (user) => ({
@@ -16,7 +19,8 @@ async function seedDatabase() {
         password: await bcrypt.hash(user.password, 10),
       }))
     );
-    await prisma.user.createMany({ data: payload });
+    await db.collection('users').insertMany(payload);
+    console.log('Seed: Users inserted');
   }
 }
 

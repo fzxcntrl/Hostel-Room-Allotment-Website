@@ -1,4 +1,5 @@
 import Accordion from '../components/Accordion';
+import PageWrapper from '../animations/PageWrapper';
 
 const questions = [
   {
@@ -25,13 +26,15 @@ const questions = [
 
 function FAQ() {
   return (
-    <section className="section">
-      <div className="section__header">
-        <h1>Frequently asked questions</h1>
-        <p>Quick answers for students, parents and admin teams exploring HostelBloom.</p>
-      </div>
-      <Accordion items={questions} />
-    </section>
+    <PageWrapper>
+      <section className="section">
+        <div className="section__header">
+          <h1>Frequently asked questions</h1>
+          <p>Quick answers for students, parents and admin teams exploring HostelBloom.</p>
+        </div>
+        <Accordion items={questions} />
+      </section>
+    </PageWrapper>
   );
 }
 

@@ -1,9 +1,11 @@
 const express = require('express');
-const roomController = require('../controllers/roomController');
-
+const { getAllRooms, getAvailableRooms, addRoom, getRoomById, updateRoomAvailability } = require('../controllers/roomController');
 const router = express.Router();
 
-router.get('/', roomController.getAllRooms);
-router.get('/available', roomController.getAvailableRooms);
+router.get('/', getAllRooms);
+router.get('/available', getAvailableRooms);
+router.get('/:id', getRoomById);
+router.post('/', addRoom);
+router.patch('/:id', updateRoomAvailability);
 
 module.exports = router;
