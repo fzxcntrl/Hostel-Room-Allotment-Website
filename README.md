@@ -31,7 +31,7 @@ Sem3project/
 - **Welcoming landing page** with smooth staggered animations, testimonials, and live expanding stats.
 - **Room explorer** (`/rooms`) listing all rooms with imagery, capacity, amenities, and dynamic hover animations.
 - **Booking workflow** (`/book`) where authenticated users select a room, choose dates, add preferences, and confirm instantly.
-- **AI Concierge (Bloom)** – Powered by Google Gemini 2.0 Flash SDK integrated tightly into the backend.
+- **AI Concierge (Bloom)** – Powered by Groq AI and Llama 3 integrated tightly into the backend.
 - **Auth flows** – secure login & registration with server-validation, hashed passwords (bcrypt), and stateless JWT issuance.
 - **Booking history dashboard** (`/history`) showing past/future stays, statuses, and one-click cancellation.
 - **Insight APIs** for admins, exposing totals, occupancy rate, and weekly activity.
@@ -45,7 +45,7 @@ Sem3project/
 | ---------- | ------------------------- | ----- |
 | Frontend   | React 18 + Vite           | Framer Motion, Anime.js v4, React Router, Axios, Lucide React Icons |
 | Backend    | Node.js 18 + Express 5    | RESTful routes, express-validator, bcryptjs, jsonwebtoken |
-| AI / SDK   | Google Gemini API         | `@google/generative-ai` powering the HostelBloom assistant |
+| AI / SDK   | Groq API                  | `groq-sdk` powering the HostelBloom assistant via Llama 3 |
 | Database   | MongoDB (Native Driver)   | `mongodb` package directly managing collections (No Mongoose overhead) |
 | Tooling    | Nodemon, dotenv           | Hot reload backend, strict environment management |
 
@@ -55,7 +55,7 @@ Sem3project/
 ### 4.1 Prerequisites
 - Node.js ≥ 18 and npm
 - A MongoDB Cluster (MongoDB Atlas is highly recommended)
-- A Google Gemini API Key (available on Google AI Studio)
+- A Groq API Key
 
 ### 4.2 Environment variables
 #### Backend (`backend/.env`)
@@ -63,7 +63,7 @@ Sem3project/
 PORT=3000
 MONGO_URI=mongodb+srv://<user>:<password>@cluster0.mongodb.net/hostelbloom
 JWT_SECRET=super_secret_jwt_key_2026
-GEMINI_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
 ```
 
 #### Frontend (`frontend/.env`)
@@ -108,7 +108,7 @@ We rely entirely on the **Native MongoDB Node.js Driver** for extreme flexibilit
 | PATCH | `/bookings/:bookingId/cancel`| Cancel booking, release room back to `Available` |
 | POST | `/auth/register` | Create account (hashed password) |
 | POST | `/auth/login` | Verify credentials, respond with JWT |
-| POST | `/chat` | Sends user query to Gemini AI SDK and returns text response |
+| POST | `/chat` | Sends user query with message context to Groq SDK and returns text response |
 
 ---
 
