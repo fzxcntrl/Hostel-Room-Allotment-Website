@@ -102,7 +102,7 @@ function BookingHistory() {
                       </div>
                       <div>
                         <dt>Price</dt>
-                        <dd>${booking.roomId?.price}</dd>
+                        <dd>₹{booking.roomId?.price ? booking.roomId.price * 85 : 0}</dd>
                       </div>
                     </dl>
                     <button className="btn btn--outline" onClick={() => handleCancel(booking._id || booking.id)}>
@@ -131,7 +131,7 @@ function BookingHistory() {
                       </div>
                       <div>
                         <dt>Price</dt>
-                        <dd>${booking.roomId?.price}</dd>
+                        <dd>₹{booking.roomId?.price ? booking.roomId.price * 85 : 0}</dd>
                       </div>
                     </dl>
                   </article>
