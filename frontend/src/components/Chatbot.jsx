@@ -31,7 +31,8 @@ function Chatbot() {
     setIsLoading(true);
 
     try {
-      const response = await api.post('/chat', { query: userMessage.content });
+      const chatHistory = [...messages, userMessage];
+      const response = await api.post('/chat', { messages: chatHistory });
       setMessages((prev) => [...prev, { role: 'assistant', content: response.data.reply }]);
     } catch (error) {
       setMessages((prev) => [...prev, { role: 'assistant', content: 'Sorry, I am having trouble connecting right now.' }]);
