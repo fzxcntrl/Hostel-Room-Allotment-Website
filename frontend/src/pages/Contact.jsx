@@ -43,16 +43,27 @@ function Contact() {
     });
 
     try {
-      await api.post('/contact', {
+      const response = await api.post('/contact', {
         name: form.fullName,
         email: form.email,
         subject: form.subject,
         message: form.message
       });
-      toast.success('We received your note and will reply shortly.');
+      
+      if (response.data?.emailSent === false) {
+        toast.success('Message saved to our system, though the email receipt failed to send.');
+      } else {
+        toast.success('We received your note and will reply shortly.');
+      }
       setForm(defaultForm);
     } catch (error) {
-      toast.error('Failed to send message. Please try again.');
+      if (error.response?.status === 429) {
+        toast.error('Too many requests. Please try again later.');
+      } else if (error.response?.data?.message) {
+        toast.error(error.response.data.message);
+      } else {
+        toast.error('Failed to send message. Please try again.');
+      }
     } finally {
       loadingAnim.pause();
       // Reset button

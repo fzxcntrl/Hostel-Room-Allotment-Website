@@ -1,6 +1,6 @@
 const { validationResult } = require('express-validator');
 const { getDb } = require('../config/db');
-const { sendContactEmail } = require('../utils/sendEmail');
+const { sendContactEmail, sendContactAutoReplyEmail } = require('../utils/sendEmail');
 
 async function submitContactForm(req, res, next) {
   try {
@@ -28,14 +28,23 @@ async function submitContactForm(req, res, next) {
 
     await db.collection('messages').insertOne(contactMessage);
 
-    const emailResult = await sendContactEmail(contactMessage);
+    const adminEmailResult = await sendContactEmail(contactMessage);
+
+    let userEmailResult = { success: false };
+    if (adminEmailResult.success) {
+      userEmailResult = await sendContactAutoReplyEmail(contactMessage);
+    } else {
+      console.error('Admin email failed:', adminEmailResult.message);
+    }
+
+    const bothEmailsSent = adminEmailResult.success && userEmailResult.success;
 
     return res.status(201).json({
       success: true,
-      emailSent: emailResult.success,
-      message: emailResult.success
+      emailSent: bothEmailsSent,
+      message: bothEmailsSent
         ? 'Message received successfully and forwarded to the admin inbox.'
-        : 'Message received successfully, but the admin email could not be delivered right now.',
+        : 'Message recorded, but email service is currently unavailable.',
     });
   } catch (error) {
     console.error('Error while processing contact form:', error);
