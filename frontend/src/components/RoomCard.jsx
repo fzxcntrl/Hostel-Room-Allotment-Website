@@ -5,9 +5,19 @@ import { animateCardHover, animateCardLeave } from '../animations/microInteracti
 function RoomCard({ room, onSelect, isSelected }) {
   const cardRef = useRef(null);
   const imgRef = useRef(null);
-  const cover =
-    room.photoUrl ||
-    'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800&q=80';
+  const stableImages = [
+    'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1560067174-c5a3a8f37060?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1555636222-cae831e670b3?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1598928506311-c55dd12cb071?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1505691938895-1758d7feb511?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&w=800&q=80',
+    'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80'
+  ];
+  const nameHash = (room.name || 'Room').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+  const cover = stableImages[nameHash % stableImages.length];
     
   return (
     <article 

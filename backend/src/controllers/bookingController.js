@@ -17,7 +17,9 @@ async function createBooking(req, res, next) {
       return res.status(400).json({ success: false, message: 'Invalid room or user ID.' });
     }
 
-    const room = await db.collection('rooms').findOne({ _id: new ObjectId(roomId) });
+    const roomObjectId = new ObjectId(roomId);
+    const userObjectId = new ObjectId(userId);
+    const room = await db.collection('rooms').findOne({ _id: roomObjectId });
 
     if (!room) {
       return res.status(404).json({ success: false, message: 'Room not found.' });
@@ -29,6 +31,11 @@ async function createBooking(req, res, next) {
 
     const checkInDate = new Date(checkIn);
     const checkOutDate = new Date(checkOut);
+
+    if (Number.isNaN(checkInDate.getTime()) || Number.isNaN(checkOutDate.getTime())) {
+      return res.status(400).json({ success: false, message: 'Invalid booking dates supplied.' });
+    }
+
     checkInDate.setHours(0, 0, 0, 0);
     checkOutDate.setHours(0, 0, 0, 0);
 
@@ -37,51 +44,66 @@ async function createBooking(req, res, next) {
       return res.status(400).json({ success: false, message: 'Check-out must be at least 1 day after check-in.' });
     }
 
+    if (Number(guests) > Number(room.capacity || 0)) {
+      return res.status(400).json({
+        success: false,
+        message: `This room can host up to ${room.capacity} guest${room.capacity > 1 ? 's' : ''}.`,
+      });
+    }
+
+    const user = await db.collection('users').findOne({ _id: userObjectId });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    const normalizedEmail = (email || user.email || '').trim().toLowerCase();
+    const totalNights = Math.round((checkOutDate.getTime() - checkInDate.getTime()) / msPerDay);
+    const totalPrice = totalNights * Number(room.price || 0) * 85;
+
     const booking = {
-      roomId: new ObjectId(roomId),
-      userId: new ObjectId(userId),
-      date: new Date(checkIn),
-      checkOutDate: new Date(checkOut),
-      email: email || '',
-      contactNumber: contactNumber || '',
+      roomId: roomObjectId,
+      userId: userObjectId,
+      date: new Date(checkInDate),
+      checkOutDate: new Date(checkOutDate),
+      email: normalizedEmail,
+      contactNumber: (contactNumber || '').trim(),
+      guests: Number(guests),
+      notes: (notes || '').trim(),
       status: 'Confirmed',
       createdAt: new Date(),
     };
-    
+
     const result = await db.collection('bookings').insertOne(booking);
     booking._id = result.insertedId;
 
     await db.collection('rooms').updateOne(
-      { _id: new ObjectId(roomId) },
+      { _id: roomObjectId },
       { $set: { isAvailable: false } }
     );
 
     const bookingData = {
-      name: 'Resident',
-      room: room.name || `Room ${room.roomNumber}`,
-      checkIn: checkInDate.toLocaleDateString(),
-      checkOut: checkOutDate.toLocaleDateString(),
-      price: (room.price * 85).toString(),
-      id: booking._id.toString()
+      name: user.name || user.fullName || normalizedEmail.split('@')[0] || 'Resident',
+      room: room.roomNumber || room.name || 'N/A',
+      checkIn: checkInDate,
+      checkOut: checkOutDate,
+      price: totalPrice,
+      id: booking._id.toString(),
     };
-    
-    // Fetch user details for the email formatting
-    const userObj = await db.collection('users').findOne({ _id: new ObjectId(userId) });
-    if(userObj) {
-      bookingData.name = userObj.name || userObj.email.split('@')[0];
-    }
-    const userEmail = email || userObj?.email;
 
-    if (userEmail) {
-      await sendBookingEmail(userEmail, bookingData);
-    }
+    const emailResult = normalizedEmail
+      ? await sendBookingEmail(normalizedEmail, bookingData)
+      : { success: false, message: 'No recipient email available for this booking.' };
 
     res.status(201).json({
       success: true,
-      message: 'Room booked successfully! Confirmation email sent.',
+      emailSent: emailResult.success,
+      message: emailResult.success
+        ? 'Room booked successfully! Confirmation email sent.'
+        : 'Room booked successfully, but the confirmation email could not be sent right now.',
       booking,
     });
   } catch (error) {
+    console.error('Error creating booking:', error);
     next(error);
   }
 }
@@ -96,21 +118,22 @@ async function getBookings(req, res, next) {
           from: 'rooms',
           localField: 'roomId',
           foreignField: '_id',
-          as: 'roomInfo'
-        }
+          as: 'roomInfo',
+        },
       },
       {
-         $lookup: {
+        $lookup: {
           from: 'users',
           localField: 'userId',
           foreignField: '_id',
-          as: 'userInfo'
-        }
-      }
+          as: 'userInfo',
+        },
+      },
     ]).toArray();
-    
+
     res.json({ success: true, data });
   } catch (error) {
+    console.error('Error fetching bookings:', error);
     next(error);
   }
 }
@@ -121,30 +144,30 @@ async function getUserBookings(req, res, next) {
     if (!ObjectId.isValid(userId)) {
       return res.status(400).json({ success: false, message: 'Invalid user ID' });
     }
-    
+
     const db = getDb();
-    
+
     const bookings = await db.collection('bookings').aggregate([
       { $match: { userId: new ObjectId(userId) } },
       { $sort: { createdAt: -1 } },
       {
         $lookup: {
-           from: 'rooms',
-           localField: 'roomId',
-           foreignField: '_id',
-           as: 'roomInfo'
-        }
-      }
+          from: 'rooms',
+          localField: 'roomId',
+          foreignField: '_id',
+          as: 'roomInfo',
+        },
+      },
     ]).toArray();
 
-    // Map it to match what the frontend expects 
-    const mapped = bookings.map(b => ({
-      ...b,
-      roomId: b.roomInfo && b.roomInfo.length > 0 ? b.roomInfo[0] : null
+    const mapped = bookings.map((booking) => ({
+      ...booking,
+      roomId: booking.roomInfo && booking.roomInfo.length > 0 ? booking.roomInfo[0] : null,
     }));
 
     res.json({ success: true, data: mapped });
   } catch (error) {
+    console.error('Error fetching user bookings:', error);
     next(error);
   }
 }
@@ -156,11 +179,11 @@ async function cancelBooking(req, res, next) {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
     const { bookingId } = req.params;
-    
+
     if (!ObjectId.isValid(bookingId)) {
-        return res.status(400).json({ success: false, message: 'Invalid booking ID' })
+      return res.status(400).json({ success: false, message: 'Invalid booking ID' });
     }
-    
+
     const db = getDb();
     const booking = await db.collection('bookings').findOne({ _id: new ObjectId(bookingId) });
 
@@ -173,6 +196,7 @@ async function cancelBooking(req, res, next) {
 
     res.json({ success: true, message: 'Booking cancelled successfully.' });
   } catch (error) {
+    console.error('Error cancelling booking:', error);
     next(error);
   }
 }
