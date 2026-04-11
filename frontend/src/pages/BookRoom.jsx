@@ -13,9 +13,11 @@ function BookRoom() {
   const [formData, setFormData] = useState({
     checkIn: '',
     checkOut: '',
+    email: '',
+    contactNumber: '',
     guests: 1,
     notes: '',
-  });
+  });  
   const [status, setStatus] = useState({ loadingRooms: true, submitting: false, error: null });
 
   useEffect(() => {
@@ -128,11 +130,28 @@ function BookRoom() {
         <form className="card form" onSubmit={handleSubmit}>
           <div className="form__group">
             <label htmlFor="checkIn">Check-in</label>
-            <input type="date" id="checkIn" name="checkIn" value={formData.checkIn} onChange={handleChange} required disabled={status.submitting} />
+            <input type="date" id="checkIn" name="checkIn" value={formData.checkIn} onChange={handleChange} min={new Date().toISOString().split('T')[0]} required disabled={status.submitting} />
           </div>
           <div className="form__group">
             <label htmlFor="checkOut">Check-out</label>
-            <input type="date" id="checkOut" name="checkOut" value={formData.checkOut} onChange={handleChange} required disabled={status.submitting} />
+            <input 
+              type="date" 
+              id="checkOut" 
+              name="checkOut" 
+              value={formData.checkOut} 
+              onChange={handleChange} 
+              required 
+              min={formData.checkIn ? new Date(new Date(formData.checkIn).getTime() + 86400000).toISOString().split('T')[0] : new Date(new Date().getTime() + 86400000).toISOString().split('T')[0]} 
+              disabled={status.submitting || !formData.checkIn} 
+            />
+          </div>
+          <div className="form__group">
+            <label htmlFor="email">Email</label>
+            <input type="email" id="email" name="email" value={formData.email} onChange={handleChange} required disabled={status.submitting} placeholder="john@example.com" />
+          </div>
+          <div className="form__group">
+            <label htmlFor="contactNumber">Contact Number</label>
+            <input type="tel" id="contactNumber" name="contactNumber" value={formData.contactNumber} onChange={handleChange} required disabled={status.submitting} placeholder="+1 ..." />
           </div>
           <div className="form__group">
             <label htmlFor="guests">Guests</label>

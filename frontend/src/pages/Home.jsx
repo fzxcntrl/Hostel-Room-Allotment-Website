@@ -1,8 +1,39 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import StatsStrip from '../components/StatsStrip';
 import PageWrapper from '../animations/PageWrapper';
+import { useAuth } from '../context/AuthContext';
+import api from '../services/api';
 import { animateHero, animateButtonHover, animateButtonLeave } from '../animations/microInteractions';
+
+function LiveCountdown({ targetDate }) {
+  const [timeLeft, setTimeLeft] = useState(targetDate.getTime() - new Date().getTime());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(targetDate.getTime() - new Date().getTime());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [targetDate]);
+
+  if (timeLeft < 0) {
+    return <span className="badge">Checked-in today</span>;
+  }
+
+  const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+  const mins = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+  const secs = Math.floor((timeLeft % (1000 * 60)) / 1000);
+
+  return (
+    <div style={{ display: 'flex', gap: '16px', marginTop: '12px' }}>
+      <div className="countdown-box"><h4>{days}</h4><small>Days</small></div>
+      <div className="countdown-box"><h4>{hours}</h4><small>Hours</small></div>
+      <div className="countdown-box"><h4>{mins}</h4><small>Mins</small></div>
+      <div className="countdown-box"><h4>{secs}</h4><small>Secs</small></div>
+    </div>
+  );
+}
 
 const highlights = [
   { title: 'Soft aesthetics', text: 'Warm palettes, rounded corners and calm typography welcome your guests.' },
@@ -24,10 +55,21 @@ const testimonials = [
 function Home() {
   const contentRef = useRef(null);
   const ctaRef = useRef(null);
+  const { user, isAuthenticated } = useAuth();
+  const [activeBooking, setActiveBooking] = useState(null);
 
   useEffect(() => {
     animateHero(contentRef, ctaRef);
-  }, []);
+
+    if (isAuthenticated && user) {
+      api.get(`/bookings/user/${user.id || user._id}`).then(res => {
+         const now = new Date();
+         now.setHours(0,0,0,0);
+         const upcoming = res.data.data.find(b => b.status === 'Confirmed' && new Date(b.date) >= now);
+         if(upcoming) setActiveBooking(upcoming);
+      }).catch(err => console.error(err));
+    }
+  }, [isAuthenticated, user]);
 
   return (
     <PageWrapper>
@@ -66,6 +108,16 @@ function Home() {
           ))}
         </div>
       </section>
+
+      {activeBooking && (
+        <section className="section" style={{ padding: '2rem 1rem', background: 'var(--primary)', color: 'white' }}>
+          <div className="section__header" style={{ marginBottom: 0 }}>
+            <h2 style={{ color: 'white' }}>Your stay is confirmed!</h2>
+            <p>Your upcoming stay at <strong style={{color:"white"}}>{activeBooking.roomId?.name || 'Room ' + activeBooking.roomId?.roomNumber}</strong> is blooming soon.</p>
+            <LiveCountdown targetDate={new Date(activeBooking.date)} />
+          </div>
+        </section>
+      )}
 
       <StatsStrip />
 

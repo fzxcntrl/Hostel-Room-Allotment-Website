@@ -9,7 +9,7 @@ async function createBooking(req, res, next) {
       return res.status(400).json({ success: false, errors: errors.array() });
     }
 
-    const { roomId, userId, checkIn, checkOut, guests, notes } = req.body;
+    const { roomId, userId, checkIn, checkOut, guests, notes, email, contactNumber } = req.body;
     const db = getDb();
 
     if (!ObjectId.isValid(roomId) || !ObjectId.isValid(userId)) {
@@ -26,14 +26,23 @@ async function createBooking(req, res, next) {
       return res.status(400).json({ success: false, message: 'Room is not available right now.' });
     }
 
-    if (new Date(checkOut) <= new Date(checkIn)) {
-      return res.status(400).json({ success: false, message: 'Check-out must be after check-in.' });
+    const checkInDate = new Date(checkIn);
+    const checkOutDate = new Date(checkOut);
+    checkInDate.setHours(0, 0, 0, 0);
+    checkOutDate.setHours(0, 0, 0, 0);
+
+    const msPerDay = 1000 * 60 * 60 * 24;
+    if (checkOutDate.getTime() < checkInDate.getTime() + msPerDay) {
+      return res.status(400).json({ success: false, message: 'Check-out must be at least 1 day after check-in.' });
     }
 
     const booking = {
       roomId: new ObjectId(roomId),
       userId: new ObjectId(userId),
       date: new Date(checkIn),
+      checkOutDate: new Date(checkOut),
+      email: email || '',
+      contactNumber: contactNumber || '',
       status: 'Confirmed',
       createdAt: new Date(),
     };

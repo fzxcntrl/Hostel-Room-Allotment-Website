@@ -3,21 +3,27 @@ const { getDb } = require('../config/db');
 async function getOverview(req, res, next) {
   try {
     const db = getDb();
-    const [rooms, availableRooms, bookings, users] = await Promise.all([
-      db.collection('rooms').countDocuments(),
-      db.collection('rooms').countDocuments({ isAvailable: true }),
+    const roomsCollection = db.collection('rooms');
+    const allRooms = await roomsCollection.find().toArray();
+    const roomsCount = allRooms.length;
+    const availableRoomsCount = allRooms.filter(r => r.isAvailable).length;
+    
+    // Dynamic Total beds = sum of capacities
+    const totalBeds = allRooms.reduce((sum, r) => sum + (r.capacity || 1), 0);
+
+    const [bookings, users] = await Promise.all([
       db.collection('bookings').countDocuments(),
       db.collection('users').countDocuments(),
     ]);
 
-    const occupancyRate = rooms === 0 ? 0 : Math.round(((rooms - availableRooms) / rooms) * 100);
+    const occupancyRate = roomsCount === 0 ? 0 : Math.round(((roomsCount - availableRoomsCount) / roomsCount) * 100);
 
     res.json({
       success: true,
       data: {
         totals: {
-          rooms,
-          availableRooms,
+          rooms: totalBeds, // Serve total beds to frontend as "rooms" field or frontend handles it
+          availableRooms: availableRoomsCount, // Serve open rooms
           bookings,
           users,
         },
