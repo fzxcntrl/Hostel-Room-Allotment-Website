@@ -19,6 +19,7 @@ function RoomCard({ room, onSelect, isSelected }) {
   ];
   const nameHash = (room.name || 'Room').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   const cover = room.photoUrl || stableImages[nameHash % stableImages.length];
+  const capacity = Number(room.capacity) || 1;
     
   return (
     <article 
@@ -37,16 +38,10 @@ function RoomCard({ room, onSelect, isSelected }) {
         </div>
         <p className="room-card__description">{room.description}</p>
         <ul className="room-card__meta">
-          <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <BedDouble size={16} /> {room.capacity || 1} {room.capacity === 1 ? 'bed' : 'beds'}
-          </li>
-          <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <FiUsers /> {room.capacity || 1} guests
-          </li>
-          <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <FiWifi /> {(room.amenities || ['WiFi']).slice(0, 2).join(' · ')}
-          </li>
-          <li style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>★ {(room.rating || 4.5).toFixed?.(1) || room.rating}</li>
+          <li><BedDouble size={16} /> {capacity} {capacity === 1 ? 'bed' : 'beds'}</li>
+          <li><FiUsers /> {capacity} guests</li>
+          <li><FiWifi /> {(room.amenities || ['WiFi']).slice(0, 2).join(' · ')}</li>
+          <li>★ {Number(room.rating || 4.5).toFixed(1)}</li>
         </ul>
         <div className="room-card__footer">
           <p className="price">₹{room.price * 85}/night</p>

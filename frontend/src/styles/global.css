@@ -197,6 +197,17 @@ a {
   color: var(--muted);
 }
 
+.room-card__meta li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.room-card__meta svg {
+  flex-shrink: 0;
+}
+
 .room-card__footer {
   display: flex;
   justify-content: space-between;
