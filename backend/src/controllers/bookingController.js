@@ -1,6 +1,7 @@
 const { validationResult } = require('express-validator');
 const { ObjectId } = require('mongodb');
 const { getDb } = require('../config/db');
+const { sendBookingEmail } = require('../utils/sendEmail');
 
 async function createBooking(req, res, next) {
   try {
@@ -55,9 +56,29 @@ async function createBooking(req, res, next) {
       { $set: { isAvailable: false } }
     );
 
+    const bookingData = {
+      name: 'Resident',
+      room: room.name || `Room ${room.roomNumber}`,
+      checkIn: checkInDate.toLocaleDateString(),
+      checkOut: checkOutDate.toLocaleDateString(),
+      price: (room.price * 85).toString(),
+      id: booking._id.toString()
+    };
+    
+    // Fetch user details for the email formatting
+    const userObj = await db.collection('users').findOne({ _id: new ObjectId(userId) });
+    if(userObj) {
+      bookingData.name = userObj.name || userObj.email.split('@')[0];
+    }
+    const userEmail = email || userObj?.email;
+
+    if (userEmail) {
+      await sendBookingEmail(userEmail, bookingData);
+    }
+
     res.status(201).json({
       success: true,
-      message: 'Room booked successfully!',
+      message: 'Room booked successfully! Confirmation email sent.',
       booking,
     });
   } catch (error) {
