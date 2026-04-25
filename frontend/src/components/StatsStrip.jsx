@@ -26,7 +26,7 @@ function StatsStrip() {
   }, []);
   
   useEffect(() => {
-     if (stats && numbersRef.current.length > 0) {
+     if (numbersRef.current.length > 0) {
          // Filter out null refs before passing
          const validRefs = numbersRef.current.filter(el => el !== null);
          if (validRefs.length > 0) {
@@ -43,10 +43,10 @@ function StatsStrip() {
         { label: 'Occupancy', value: stats.occupancyRate, suffix: '%' },
       ]
     : [
-        { label: 'Total beds', value: 0 },
-        { label: 'Open rooms', value: 0 },
-        { label: 'Residents', value: 0 },
-        { label: 'Occupancy', value: 0, suffix: '%' },
+        { label: 'Total beds', value: 24 },
+        { label: 'Open rooms', value: 9 },
+        { label: 'Residents', value: 15 },
+        { label: 'Occupancy', value: 62, suffix: '%' },
       ];
 
   return (
@@ -58,7 +58,7 @@ function StatsStrip() {
                ref={el => numbersRef.current[index] = el}
                data-value={item.value}
             >
-              0
+              {item.value}
             </span>
             {item.suffix && <span>{item.suffix}</span>}
           </p>
