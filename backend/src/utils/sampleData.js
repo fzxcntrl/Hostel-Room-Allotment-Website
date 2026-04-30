@@ -91,7 +91,7 @@ const roomSeed = [
     price: 68,
     isAvailable: true,
     amenities: ['AC', 'WiFi', 'Wardrobe', 'Smart TV'],
-    photoUrl: 'https://images.unsplash.com/photo-1505693314120-0d443867891c?auto=format&fit=crop&w=800&q=80',
+    photoUrl: 'https://m.media-amazon.com/images/I/61auXI5JPKL._AC_UF894,1000_QL80_.jpg',
     description: 'Cozy collaborative space optimized for relaxation and media viewing.',
     rating: 4.7,
   },
