@@ -17,7 +17,7 @@ function RoomCard({ room, onSelect, isSelected }) {
     'https://images.unsplash.com/photo-1582719508461-905c673771fd?auto=format&fit=crop&w=800&q=80'
   ];
   const nameHash = (room.name || 'Room').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const cover = stableImages[nameHash % stableImages.length];
+  const cover = room.photoUrl || stableImages[nameHash % stableImages.length];
     
   return (
     <article 

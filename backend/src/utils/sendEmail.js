@@ -1,38 +1,20 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const SMTP_HOST = 'smtp.gmail.com';
-const SMTP_PORT = 587;
 const DEFAULT_ADMIN_CONTACT_EMAIL = 'hostelblooom@gmail.com';
 
-let transporter;
+let resendClient;
 
-function getTransporter() {
-  if (transporter) {
-    return transporter;
+function getResendClient() {
+  if (!resendClient && process.env.RESEND_API_KEY) {
+    resendClient = new Resend(process.env.RESEND_API_KEY);
   }
-
-  transporter = nodemailer.createTransport({
-    service: 'gmail',
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: false,
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-    connectionTimeout: Number(process.env.EMAIL_CONNECTION_TIMEOUT || 10000),
-    greetingTimeout: Number(process.env.EMAIL_GREETING_TIMEOUT || 10000),
-    socketTimeout: Number(process.env.EMAIL_SOCKET_TIMEOUT || 15000),
-  });
-
-  return transporter;
+  return resendClient;
 }
 
 function getEmailConfigError() {
-  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-    return 'Email service is not configured. Set EMAIL_USER and EMAIL_PASS in the backend environment.';
+  if (!process.env.RESEND_API_KEY || !process.env.EMAIL_FROM) {
+    return 'Email service is not configured. Set RESEND_API_KEY and EMAIL_FROM in the backend environment.';
   }
-
   return null;
 }
 
@@ -73,13 +55,7 @@ function formatCurrency(value) {
   }).format(amount);
 }
 
-function buildRenderSmtpHint(error) {
-  if (process.env.RENDER && error?.code === 'ETIMEDOUT') {
-    return 'Render free web services block outbound SMTP ports 25, 465, and 587. Upgrade the service or switch to an email API provider to send production emails from Render.';
-  }
 
-  return null;
-}
 
 function buildBookingEmailHtml(bookingData) {
   const details = [
@@ -211,20 +187,28 @@ async function sendMail(mailOptions, label) {
   }
 
   try {
-    const info = await getTransporter().sendMail(mailOptions);
-    console.log(`[email:${label}] Email sent successfully: ${info.messageId}`);
-    return { success: true, messageId: info.messageId, message: 'Email sent successfully.' };
-  } catch (error) {
-    const hint = buildRenderSmtpHint(error);
+    const client = getResendClient();
+    const { data, error } = await client.emails.send({
+      from: mailOptions.from,
+      to: mailOptions.to,
+      reply_to: mailOptions.replyTo || undefined,
+      subject: mailOptions.subject,
+      html: mailOptions.html,
+      text: mailOptions.text,
+    });
 
-    console.error(`[email:${label}] Failed to send email:`, error);
-    if (hint) {
-      console.error(`[email:${label}] ${hint}`);
+    if (error) {
+      console.error(`[email:${label}] Failed to send email (Resend API):`, error);
+      return { success: false, message: error.message || 'Failed to send email.', error };
     }
 
+    console.log(`[email:${label}] Email sent successfully: ${data.id}`);
+    return { success: true, messageId: data.id, message: 'Email sent successfully.' };
+  } catch (error) {
+    console.error(`[email:${label}] Failed to send email (Exception):`, error);
     return {
       success: false,
-      message: hint || error.message || 'Failed to send email.',
+      message: error.message || 'Failed to send email.',
       error,
     };
   }
@@ -233,9 +217,9 @@ async function sendMail(mailOptions, label) {
 async function sendBookingEmail(userEmail, bookingData) {
   return sendMail(
     {
-      from: `"HostelBloom" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM,
       to: userEmail,
-      replyTo: process.env.ADMIN_CONTACT_EMAIL || process.env.EMAIL_USER,
+      replyTo: process.env.ADMIN_CONTACT_EMAIL || undefined,
       subject: 'Booking Confirmation - HostelBloom',
       html: buildBookingEmailHtml(bookingData),
       text: buildBookingEmailText(bookingData),
@@ -247,7 +231,7 @@ async function sendBookingEmail(userEmail, bookingData) {
 async function sendContactEmail(data) {
   return sendMail(
     {
-      from: `"HostelBloom Contact" <${process.env.EMAIL_USER}>`,
+      from: process.env.EMAIL_FROM,
       to: process.env.ADMIN_CONTACT_EMAIL || DEFAULT_ADMIN_CONTACT_EMAIL,
       replyTo: data.email,
       subject: 'New Contact Message - HostelBloom',
@@ -258,7 +242,35 @@ async function sendContactEmail(data) {
   );
 }
 
+async function sendContactAutoReplyEmail(data) {
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; color: #333; line-height: 1.6;">
+      <h2 style="color: #0f766e;">We received your message!</h2>
+      <p>Hi ${escapeHtml(data.name)},</p>
+      <p>Thank you for reaching out to HostelBloom. We have received your message and our team will get back to you within 30 minutes.</p>
+      <div style="background-color: #f7f1e8; padding: 15px; border-radius: 8px; margin-top: 20px;">
+        <p style="margin-top: 0; font-weight: bold;">Your Message:</p>
+        <p style="font-style: italic;">"${escapeHtml(data.message)}"</p>
+      </div>
+      <p style="margin-top: 30px; font-size: 0.9em; color: #777;">Best regards,<br>The HostelBloom Team</p>
+    </div>
+  `;
+  const text = `Hi ${data.name},\n\nWe received your message: "${data.message}"\n\nOur team will get back to you within 30 minutes.\n\nBest regards,\nHostelBloom`;
+
+  return sendMail(
+    {
+      from: process.env.EMAIL_FROM,
+      to: data.email,
+      subject: 'Thank you for contacting HostelBloom',
+      html,
+      text,
+    },
+    'contact-auto-reply'
+  );
+}
+
 module.exports = {
   sendBookingEmail,
   sendContactEmail,
+  sendContactAutoReplyEmail,
 };
