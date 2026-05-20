@@ -1,4 +1,4 @@
-const { GoogleGenerativeAI } = require('@google/generative-ai');
+
 const Groq = require('groq-sdk');
 
 const SYSTEM_PROMPT = `You are a helpful, knowledgeable, and strictly constrained assistant for HostelBloom, a modern boutique hostel.
@@ -35,28 +35,7 @@ async function generateResponse(messages) {
     return chatCompletion.choices[0]?.message?.content || "I'm sorry, I encountered an issue.";
   }
 
-  // Fallback to Gemini
-  if (process.env.GEMINI_API_KEY) {
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ 
-        model: "gemini-2.0-flash",
-        systemInstruction: SYSTEM_PROMPT
-    });
-
-    // Gemini API requires chat history formatted as: { role: 'user' | 'model', parts: [{ text: '...' }] }
-    const history = messages.slice(0, -1).map(msg => ({
-      role: msg.role === 'assistant' ? 'model' : 'user',
-      parts: [{ text: msg.content }]
-    }));
-    
-    const latestQuery = messages[messages.length - 1].content;
-
-    const chat = model.startChat({ history });
-    const result = await chat.sendMessage(latestQuery);
-    return result.response.text();
-  }
-
-  throw new Error("No AI Provider configured. Please set GROQ_API_KEY or GEMINI_API_KEY.");
+  throw new Error("No AI Provider configured. Please set GROQ_API_KEY.");
 }
 
 module.exports = {
