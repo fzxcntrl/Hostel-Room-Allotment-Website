@@ -88,12 +88,29 @@ export const animateInputBlur = (target) => {
 };
 
 export const animateCountUp = (targets) => {
-  animate(targets, {
-    innerHTML: function(el) {
-       return [0, el.getAttribute('data-value') || el.innerHTML];
-    },
-    round: 1,
-    duration: 2000,
-    ease: 'outExpo'
+  const duration = 2000;
+  
+  // Ensure targets is an array to iterate over
+  const elements = Array.isArray(targets) ? targets : (targets instanceof NodeList || targets instanceof HTMLCollection ? Array.from(targets) : [targets]);
+
+  elements.forEach(el => {
+    if (!el) return;
+    const endValue = parseFloat(el.getAttribute('data-value') || el.innerHTML) || 0;
+    const startTime = performance.now();
+    const easeOutExpo = (x) => x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
+
+    const step = (currentTime) => {
+      const elapsed = currentTime - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const currentVal = Math.round(easeOutExpo(progress) * endValue);
+      el.innerHTML = currentVal;
+      
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        el.innerHTML = Math.round(endValue);
+      }
+    };
+    requestAnimationFrame(step);
   });
 };
